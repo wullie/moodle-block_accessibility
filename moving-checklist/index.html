@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Moving Home Checklist</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0052cc;
+      min-height: 100vh;
+      overflow-x: auto;
+    }
+
+    header {
+      background: rgba(0,0,0,0.25);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+
+    header h1 {
+      color: #fff;
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.3px;
+    }
+
+    header .subtitle {
+      color: rgba(255,255,255,0.75);
+      font-size: 13px;
+    }
+
+    header .stats {
+      margin-left: auto;
+      color: rgba(255,255,255,0.85);
+      font-size: 13px;
+      display: flex;
+      gap: 16px;
+    }
+
+    header .stats span {
+      background: rgba(255,255,255,0.15);
+      padding: 4px 10px;
+      border-radius: 12px;
+    }
+
+    .board {
+      display: flex;
+      gap: 12px;
+      padding: 16px 20px 24px;
+      align-items: flex-start;
+      min-height: calc(100vh - 56px);
+    }
+
+    .column {
+      background: #ebecf0;
+      border-radius: 8px;
+      width: 272px;
+      min-width: 272px;
+      display: flex;
+      flex-direction: column;
+      max-height: calc(100vh - 88px);
+    }
+
+    .column-header {
+      padding: 10px 12px 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .column-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #172b4d;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .column-title .dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .col-count {
+      background: rgba(9,30,66,0.13);
+      color: #5e6c84;
+      font-size: 12px;
+      font-weight: 600;
+      border-radius: 10px;
+      padding: 0 6px;
+      min-width: 20px;
+      text-align: center;
+    }
+
+    .cards {
+      overflow-y: auto;
+      padding: 0 8px 8px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .cards::-webkit-scrollbar { width: 6px; }
+    .cards::-webkit-scrollbar-track { background: transparent; }
+    .cards::-webkit-scrollbar-thumb { background: #c1c7d0; border-radius: 3px; }
+
+    .card {
+      background: #fff;
+      border-radius: 6px;
+      padding: 10px 12px;
+      cursor: grab;
+      box-shadow: 0 1px 2px rgba(9,30,66,0.12);
+      transition: box-shadow 0.15s, transform 0.1s;
+      position: relative;
+      border-left: 4px solid transparent;
+    }
+
+    .card:hover {
+      box-shadow: 0 4px 8px rgba(9,30,66,0.2);
+      transform: translateY(-1px);
+    }
+
+    .card.dragging {
+      opacity: 0.5;
+      cursor: grabbing;
+    }
+
+    .card.drag-over {
+      border-top: 2px solid #0052cc;
+    }
+
+    .card-text {
+      font-size: 14px;
+      color: #172b4d;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+
+    .card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 8px;
+    }
+
+    .card-tag {
+      font-size: 11px;
+      font-weight: 600;
+      padding: 2px 8px;
+      border-radius: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .card-actions {
+      display: flex;
+      gap: 4px;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    .card:hover .card-actions { opacity: 1; }
+
+    .card-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 3px 5px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #5e6c84;
+      line-height: 1;
+    }
+
+    .card-btn:hover { background: #ebecf0; color: #172b4d; }
+
+    .card-edit-area {
+      display: none;
+    }
+
+    .card.editing .card-text,
+    .card.editing .card-meta { display: none; }
+    .card.editing .card-edit-area { display: block; }
+
+    .card-edit-area textarea {
+      width: 100%;
+      border: 2px solid #0052cc;
+      border-radius: 4px;
+      padding: 6px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: vertical;
+      min-height: 60px;
+      outline: none;
+    }
+
+    .card-edit-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      align-items: center;
+    }
+
+    .btn-save {
+      background: #0052cc;
+      color: #fff;
+      border: none;
+      padding: 5px 12px;
+      border-radius: 4px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+    .btn-save:hover { background: #0041a3; }
+
+    .btn-cancel {
+      background: none;
+      border: none;
+      color: #5e6c84;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .btn-cancel:hover { background: #ebecf0; color: #172b4d; }
+
+    .add-card-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border-radius: 0 0 8px 8px;
+      border: none;
+      background: none;
+      color: #5e6c84;
+      font-size: 14px;
+      cursor: pointer;
+      width: 100%;
+      text-align: left;
+      transition: background 0.15s, color 0.15s;
+    }
+    .add-card-btn:hover { background: rgba(9,30,66,0.08); color: #172b4d; }
+
+    .add-card-form {
+      padding: 0 8px 8px;
+      display: none;
+    }
+
+    .add-card-form.visible { display: block; }
+
+    .add-card-form textarea {
+      width: 100%;
+      border: 2px solid #0052cc;
+      border-radius: 6px;
+      padding: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      resize: none;
+      min-height: 72px;
+      outline: none;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.15);
+    }
+
+    .add-card-form select {
+      width: 100%;
+      margin-top: 6px;
+      padding: 6px 8px;
+      border: 1px solid #dfe1e6;
+      border-radius: 4px;
+      font-size: 13px;
+      background: #fff;
+      color: #172b4d;
+      outline: none;
+    }
+
+    .add-card-form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    .drop-zone {
+      min-height: 8px;
+      transition: min-height 0.15s, background 0.15s;
+      border-radius: 4px;
+    }
+
+    .drop-zone.drag-over {
+      min-height: 48px;
+      background: rgba(0,82,204,0.12);
+      border: 2px dashed #0052cc;
+    }
+
+    .add-col-btn {
+      background: rgba(255,255,255,0.25);
+      border: none;
+      color: #fff;
+      border-radius: 8px;
+      width: 272px;
+      min-width: 272px;
+      padding: 12px 16px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .add-col-btn:hover { background: rgba(255,255,255,0.35); }
+
+    .add-col-form {
+      background: #ebecf0;
+      border-radius: 8px;
+      padding: 8px;
+      width: 272px;
+      min-width: 272px;
+      display: none;
+    }
+    .add-col-form.visible { display: block; }
+
+    .add-col-form input {
+      width: 100%;
+      padding: 8px;
+      border: 2px solid #0052cc;
+      border-radius: 4px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+    }
+
+    .add-col-form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+      align-items: center;
+    }
+
+    /* Priority colours */
+    .tag-urgent  { background: #ffebe6; color: #bf2600; }
+    .tag-high    { background: #fff0b3; color: #974f0c; }
+    .tag-medium  { background: #e3fcef; color: #006644; }
+    .tag-low     { background: #deebff; color: #0747a6; }
+
+    .border-urgent { border-left-color: #ff5630; }
+    .border-high   { border-left-color: #ffab00; }
+    .border-medium { border-left-color: #36b37e; }
+    .border-low    { border-left-color: #0052cc; }
+  </style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏠 Moving Home Checklist</h1>
+    <div class="subtitle">Track everything for your move</div>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div class="board" id="board"></div>
+
+<script>
+const STORAGE_KEY = 'moving-checklist-v2';
+
+const PRIORITY_LABELS = { urgent: 'Urgent', high: 'High', medium: 'Medium', low: 'Low' };
+
+const defaultData = {
+  columns: [
+    {
+      id: 'todo', title: 'To Do', color: '#5e6c84',
+      cards: [
+        { id: 'c1',  text: 'Notify current landlord / give notice', priority: 'urgent' },
+        { id: 'c2',  text: 'Hire a removal company or rent a van', priority: 'high' },
+        { id: 'c3',  text: 'Book professional cleaners for old property', priority: 'high' },
+        { id: 'c4',  text: 'Redirect Royal Mail post to new address', priority: 'high' },
+        { id: 'c5',  text: 'Update address with bank and financial institutions', priority: 'high' },
+        { id: 'c6',  text: 'Notify HMRC / DVLA of new address', priority: 'medium' },
+        { id: 'c7',  text: 'Transfer or cancel broadband & TV package', priority: 'medium' },
+        { id: 'c8',  text: 'Sort gas, electricity & water for new property', priority: 'high' },
+        { id: 'c9',  text: 'Update electoral roll registration', priority: 'medium' },
+        { id: 'c10', text: 'Arrange contents & building insurance', priority: 'high' },
+        { id: 'c11', text: 'Measure new rooms for furniture', priority: 'medium' },
+        { id: 'c12', text: 'Collect packing boxes and supplies', priority: 'medium' },
+        { id: 'c13', text: 'Take meter readings at old property', priority: 'urgent' },
+        { id: 'c14', text: 'Return old property keys to landlord/agent', priority: 'high' },
+        { id: 'c15', text: 'Update GP, dentist and NHS records', priority: 'medium' },
+        { id: 'c16', text: 'Transfer children\'s school places if needed', priority: 'urgent' },
+        { id: 'c17', text: 'Cancel or move any regular deliveries', priority: 'low' },
+        { id: 'c18', text: 'Label boxes by room', priority: 'low' },
+      ]
+    },
+    {
+      id: 'inprogress', title: 'In Progress', color: '#0052cc',
+      cards: [
+        { id: 'c19', text: 'Declutter and sell / donate unwanted items', priority: 'medium' },
+        { id: 'c20', text: 'Pack non-essential items', priority: 'medium' },
+        { id: 'c21', text: 'Research the new area (schools, shops, transport)', priority: 'low' },
+      ]
+    },
+    {
+      id: 'done', title: 'Done', color: '#36b37e',
+      cards: []
+    },
+    {
+      id: 'blocked', title: 'Blocked / Waiting', color: '#ff5630',
+      cards: [
+        { id: 'c22', text: 'Solicitor / conveyancer confirmation of completion date', priority: 'urgent' },
+      ]
+    }
+  ]
+};
+
+let data = JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null') || defaultData;
+
+let dragSrcCard = null;
+let dragSrcColId = null;
+
+function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
+
+function uid() { return 'c' + Math.random().toString(36).slice(2, 9); }
+
+function updateStats() {
+  const total = data.columns.reduce((s, c) => s + c.cards.length, 0);
+  const done  = (data.columns.find(c => c.id === 'done')?.cards.length) || 0;
+  const el = document.getElementById('stats');
+  el.innerHTML = `<span>${done}/${total} done</span>` +
+    (total ? `<span>${Math.round(done/total*100)}% complete</span>` : '');
+}
+
+function render() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  data.columns.forEach(col => board.appendChild(buildColumn(col)));
+  board.appendChild(buildAddColUI());
+  updateStats();
+}
+
+function buildColumn(col) {
+  const el = document.createElement('div');
+  el.className = 'column';
+  el.dataset.colId = col.id;
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'column-header';
+  header.innerHTML = `
+    <div class="column-title">
+      <span class="dot" style="background:${col.color}"></span>
+      <span class="col-name">${escHtml(col.title)}</span>
+      <span class="col-count">${col.cards.length}</span>
+    </div>
+    <div style="display:flex;gap:4px">
+      <button class="card-btn rename-col" title="Rename list">✏️</button>
+      <button class="card-btn delete-col" title="Delete list">🗑️</button>
+    </div>`;
+
+  header.querySelector('.rename-col').addEventListener('click', e => { e.stopPropagation(); renameCol(col.id); });
+  header.querySelector('.delete-col').addEventListener('click', e => { e.stopPropagation(); deleteCol(col.id); });
+
+  // Cards area
+  const cards = document.createElement('div');
+  cards.className = 'cards';
+  cards.dataset.colId = col.id;
+
+  // Top drop zone
+  cards.appendChild(buildDropZone(col.id, 0));
+
+  col.cards.forEach((card, idx) => {
+    cards.appendChild(buildCard(card, col.id));
+    cards.appendChild(buildDropZone(col.id, idx + 1));
+  });
+
+  // Add card form
+  const form = document.createElement('div');
+  form.className = 'add-card-form';
+  form.innerHTML = `
+    <textarea placeholder="Enter task…" rows="3"></textarea>
+    <select>
+      <option value="low">Low priority</option>
+      <option value="medium" selected>Medium priority</option>
+      <option value="high">High priority</option>
+      <option value="urgent">Urgent</option>
+    </select>
+    <div class="add-card-form-actions">
+      <button class="btn-save add-card-confirm">Add card</button>
+      <button class="btn-cancel add-card-cancel">✕</button>
+    </div>`;
+
+  form.querySelector('.add-card-confirm').addEventListener('click', () => {
+    const text = form.querySelector('textarea').value.trim();
+    const priority = form.querySelector('select').value;
+    if (!text) return;
+    const col = data.columns.find(c => c.id === el.dataset.colId);
+    col.cards.push({ id: uid(), text, priority });
+    save();
+    form.classList.remove('visible');
+    form.querySelector('textarea').value = '';
+    render();
+  });
+
+  form.querySelector('.add-card-cancel').addEventListener('click', () => {
+    form.classList.remove('visible');
+    form.querySelector('textarea').value = '';
+  });
+
+  form.querySelector('textarea').addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      form.querySelector('.add-card-confirm').click();
+    }
+    if (e.key === 'Escape') form.querySelector('.add-card-cancel').click();
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-card-btn';
+  addBtn.innerHTML = '<span>+</span> Add a card';
+  addBtn.addEventListener('click', () => {
+    form.classList.add('visible');
+    form.querySelector('textarea').focus();
+    addBtn.style.display = 'none';
+  });
+
+  form.querySelector('.add-card-cancel').addEventListener('click', () => {
+    addBtn.style.display = '';
+  });
+
+  el.appendChild(header);
+  el.appendChild(cards);
+  el.appendChild(form);
+  el.appendChild(addBtn);
+  return el;
+}
+
+function buildCard(card, colId) {
+  const el = document.createElement('div');
+  el.className = `card border-${card.priority}`;
+  el.draggable = true;
+  el.dataset.cardId = card.id;
+
+  el.innerHTML = `
+    <div class="card-text">${escHtml(card.text)}</div>
+    <div class="card-meta">
+      <span class="card-tag tag-${card.priority}">${PRIORITY_LABELS[card.priority]}</span>
+      <div class="card-actions">
+        <button class="card-btn edit-btn" title="Edit">✏️</button>
+        <button class="card-btn move-btn" title="Move to next column">→</button>
+        <button class="card-btn del-btn" title="Delete">🗑️</button>
+      </div>
+    </div>
+    <div class="card-edit-area">
+      <textarea>${escHtml(card.text)}</textarea>
+      <select>
+        <option value="low"${card.priority==='low'?' selected':''}>Low</option>
+        <option value="medium"${card.priority==='medium'?' selected':''}>Medium</option>
+        <option value="high"${card.priority==='high'?' selected':''}>High</option>
+        <option value="urgent"${card.priority==='urgent'?' selected':''}>Urgent</option>
+      </select>
+      <div class="card-edit-actions">
+        <button class="btn-save save-edit">Save</button>
+        <button class="btn-cancel cancel-edit">✕</button>
+      </div>
+    </div>`;
+
+  el.querySelector('.edit-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    el.classList.add('editing');
+    el.querySelector('.card-edit-area textarea').focus();
+  });
+
+  el.querySelector('.save-edit').addEventListener('click', () => {
+    const newText = el.querySelector('.card-edit-area textarea').value.trim();
+    const newPri  = el.querySelector('.card-edit-area select').value;
+    if (!newText) return;
+    const col = data.columns.find(c => c.id === colId);
+    const c = col.cards.find(c => c.id === card.id);
+    c.text = newText; c.priority = newPri;
+    save(); render();
+  });
+
+  el.querySelector('.cancel-edit').addEventListener('click', () => el.classList.remove('editing'));
+
+  el.querySelector('.del-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    const col = data.columns.find(c => c.id === colId);
+    col.cards = col.cards.filter(c => c.id !== card.id);
+    save(); render();
+  });
+
+  el.querySelector('.move-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    const colIdx = data.columns.findIndex(c => c.id === colId);
+    const nextColIdx = (colIdx + 1) % data.columns.length;
+    const srcCol = data.columns[colIdx];
+    const dstCol = data.columns[nextColIdx];
+    const cardIdx = srcCol.cards.findIndex(c => c.id === card.id);
+    const [moved] = srcCol.cards.splice(cardIdx, 1);
+    dstCol.cards.push(moved);
+    save(); render();
+  });
+
+  // Drag
+  el.addEventListener('dragstart', ev => {
+    dragSrcCard = card.id;
+    dragSrcColId = colId;
+    el.classList.add('dragging');
+    ev.dataTransfer.effectAllowed = 'move';
+    ev.dataTransfer.setData('text/plain', card.id);
+  });
+  el.addEventListener('dragend', () => el.classList.remove('dragging'));
+
+  return el;
+}
+
+function buildDropZone(colId, insertIdx) {
+  const el = document.createElement('div');
+  el.className = 'drop-zone';
+  el.dataset.colId = colId;
+  el.dataset.insertIdx = insertIdx;
+
+  el.addEventListener('dragover', ev => { ev.preventDefault(); el.classList.add('drag-over'); });
+  el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+  el.addEventListener('drop', ev => {
+    ev.preventDefault();
+    el.classList.remove('drag-over');
+    if (!dragSrcCard) return;
+    const srcCol = data.columns.find(c => c.id === dragSrcColId);
+    const dstCol = data.columns.find(c => c.id === colId);
+    const cardIdx = srcCol.cards.findIndex(c => c.id === dragSrcCard);
+    const [moved] = srcCol.cards.splice(cardIdx, 1);
+    let destIdx = parseInt(insertIdx);
+    if (srcCol === dstCol && cardIdx < destIdx) destIdx--;
+    dstCol.cards.splice(destIdx, 0, moved);
+    dragSrcCard = null; dragSrcColId = null;
+    save(); render();
+  });
+
+  return el;
+}
+
+function buildAddColUI() {
+  const wrapper = document.createElement('div');
+
+  const btn = document.createElement('button');
+  btn.className = 'add-col-btn';
+  btn.innerHTML = '<span>+</span> Add another list';
+
+  const form = document.createElement('div');
+  form.className = 'add-col-form';
+  form.innerHTML = `
+    <input type="text" placeholder="List name…" maxlength="60">
+    <div class="add-col-form-actions">
+      <button class="btn-save add-col-confirm">Add list</button>
+      <button class="btn-cancel add-col-cancel">✕</button>
+    </div>`;
+
+  btn.addEventListener('click', () => { form.classList.add('visible'); btn.style.display = 'none'; form.querySelector('input').focus(); });
+
+  form.querySelector('.add-col-cancel').addEventListener('click', () => {
+    form.classList.remove('visible'); btn.style.display = ''; form.querySelector('input').value = '';
+  });
+
+  form.querySelector('.add-col-confirm').addEventListener('click', () => {
+    const title = form.querySelector('input').value.trim();
+    if (!title) return;
+    const colors = ['#5e6c84','#0052cc','#36b37e','#ff5630','#ff8b00','#6554c0'];
+    data.columns.push({ id: uid(), title, color: colors[data.columns.length % colors.length], cards: [] });
+    save(); render();
+  });
+
+  form.querySelector('input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') form.querySelector('.add-col-confirm').click();
+    if (e.key === 'Escape') form.querySelector('.add-col-cancel').click();
+  });
+
+  wrapper.appendChild(btn);
+  wrapper.appendChild(form);
+  return wrapper;
+}
+
+function renameCol(colId) {
+  const col = data.columns.find(c => c.id === colId);
+  const name = prompt('Rename list:', col.title);
+  if (name && name.trim()) { col.title = name.trim(); save(); render(); }
+}
+
+function deleteCol(colId) {
+  const col = data.columns.find(c => c.id === colId);
+  if (!confirm(`Delete list "${col.title}" and all its cards?`)) return;
+  data.columns = data.columns.filter(c => c.id !== colId);
+  save(); render();
+}
+
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+render();
+</script>
+</body>
+</html>
