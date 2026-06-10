@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.MovingChecklist" parent="Theme.MaterialComponents.DayNight.DarkActionBar">
+        <item name="colorPrimary">@color/board_blue</item>
+        <item name="colorPrimaryDark">@color/board_dark_blue</item>
+        <item name="colorAccent">@color/board_blue</item>
+        <item name="android:statusBarColor">@color/board_dark_blue</item>
+        <item name="android:windowBackground">@color/board_blue</item>
+    </style>
+</resources>
